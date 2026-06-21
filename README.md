@@ -1,0 +1,2 @@
+# 22f3000969_MLOPS_WEEKLY_ASSIGNMENT
+Mlops Assingment
