@@ -1,0 +1,5 @@
+outs:
+- md5: 47fd89ce6c52daa555a94670836c67a2
+  size: 2237
+  hash: md5
+  path: iris_train.csv
