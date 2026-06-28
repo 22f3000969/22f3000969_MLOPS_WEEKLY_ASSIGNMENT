@@ -1,5 +1,5 @@
 {
-  "train_rows": 120,
+  "train_rows": 135,
   "train_accuracy": 1.0,
-  "test_accuracy": 0.9
+  "test_accuracy": 1.0
 }

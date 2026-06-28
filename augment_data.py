@@ -1,38 +1,34 @@
 """
-Simulates new IRIS data arriving for a later pipeline iteration.
-Generates additional synthetic-but-realistic IRIS rows by sampling
-from the sklearn IRIS dataset's untouched portion, and appends them
-to data/iris_train.csv — mimicking a real-world "more labeled data
-became available" scenario between training iterations.
+Simulates new labeled IRIS data arriving for a later pipeline iteration.
+Moves a sample of rows from data/iris_test.csv into data/iris_train.csv,
+mimicking a real-world scenario where previously held-out/unlabeled
+samples get confirmed and folded into the training set.
 """
-from sklearn.datasets import load_iris
 import pandas as pd
 import sys
+import os
 
-N_NEW_ROWS = int(sys.argv[1]) if len(sys.argv) > 1 else 30
+N_NEW_ROWS = int(sys.argv[1]) if len(sys.argv) > 1 else 15
 
-iris = load_iris(as_frame=True)
-full_df = iris.frame.rename(columns={"target": "target"})
+train_path = "data/iris_train.csv"
+test_path = "data/iris_test.csv"
 
-existing = pd.read_csv("data/iris_train.csv")
-existing_test = pd.read_csv("data/iris_test.csv") if __import__("os").path.exists("data/iris_test.csv") else pd.DataFrame()
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
 
-# Find rows from the full IRIS set not already used in train or test
-combined_existing = pd.concat([existing, existing_test])
-merge_cols = ["sepal length (cm)", "sepal width (cm)", "petal length (cm)", "petal width (cm)"]
+if len(test_df) <= N_NEW_ROWS:
+    print(f"Not enough test rows left to move ({len(test_df)} remaining). Reduce N_NEW_ROWS.")
+    sys.exit(1)
 
-unused = full_df.merge(combined_existing[merge_cols], on=merge_cols, how="left", indicator=True)
-unused = unused[unused["_merge"] == "left_only"].drop(columns=["_merge"])
+# Randomly select rows from test to "promote" into train
+moved_rows = test_df.sample(n=N_NEW_ROWS, random_state=None)
+remaining_test = test_df.drop(moved_rows.index)
 
-if len(unused) == 0:
-    print("No unused IRIS rows left to add — all 150 rows already in train/test.")
-    sys.exit(0)
+updated_train = pd.concat([train_df, moved_rows], ignore_index=True)
 
-n_to_add = min(N_NEW_ROWS, len(unused))
-new_rows = unused.sample(n=n_to_add, random_state=None)
+updated_train.to_csv(train_path, index=False)
+remaining_test.to_csv(test_path, index=False)
 
-updated = pd.concat([existing, new_rows], ignore_index=True)
-updated.to_csv("data/iris_train.csv", index=False)
-
-print(f"Added {n_to_add} new rows to data/iris_train.csv")
-print(f"New training set size: {len(updated)} rows (was {len(existing)})")
+print(f"Moved {N_NEW_ROWS} rows from test set into training set")
+print(f"New training set size: {len(updated_train)} rows (was {len(train_df)})")
+print(f"New test set size: {len(remaining_test)} rows (was {len(test_df)})")
